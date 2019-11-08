@@ -1,17 +1,21 @@
 from sys import stdout
 
+    
+class Color:
+    def __init__(self, c=15, flush=False):
+        self.c = c
+        self.flush = flush
 
-def add_color_esc_codes(text: str, c: int) -> str:
-    """Surround string with escape color code and
-    """
-    cnum = 16
-    base = 30 if c < cnum / 2 else 90
-    color_code = f'\033[0;{base + c % 8};40m'
-    reset_code = '\033[0m'
-    return f'{color_code}{text}{reset_code}'
+    def __enter__(self):
+        base = 30 if self.c < 16 / 2 else 90
+        val = base + self.c % 8
+        print(f"\033[0;{val};40m", end="")
+
+    def __exit__(self, exc_t, exc_v, trace):
+        print("\033[0m", end="", flush=self.flush)
 
 
-def printc(*objects, c=15, sep=' ', end='\n', file=stdout, flush=False):
+def printc(*args, c=15, file=stdout, flush=False, **kwargs):
     """Print text in one of 16 base colors
 
     Colors are only added if the output is to stdout and not
@@ -27,13 +31,16 @@ def printc(*objects, c=15, sep=' ', end='\n', file=stdout, flush=False):
         6 - cyan       14 - brightcyan
         7 - white      15 - brightwhite (default)
     """
-    if not isinstance(c, int):
+    if not isinstance(c, int) or c not in range(16):
         raise ValueError('c has to be a number in range 0..15')
-    msg = sep.join(str(o) for o in objects)
-    if file is stdout and c != 15:
-        if stdout.isatty():
-            msg = add_color_esc_codes(msg, c=c)
-    print(msg, end=end, file=file, flush=flush)
+
+    if all([c != 15,
+            file is stdout,
+            stdout.isatty()]):
+        with Color(c, flush):
+            print(*args, file=file, **kwargs)
+    else:
+        print(*args, file=file, flush=flush, **kwargs)
 
 
 if __name__ == '__main__':
@@ -43,3 +50,4 @@ if __name__ == '__main__':
     printc()
     for i in range(8, 16):
         printc(block, c=i, end='')
+    printc()
